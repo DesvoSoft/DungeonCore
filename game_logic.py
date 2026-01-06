@@ -28,7 +28,7 @@ def initialize_game():
         },
         
         "history": [],
-        "display_log": "Has llegado a la entrada de una mazmorra antigua. El aire es frio y huele a humedad..."
+        "display_log": "🌧️ **PRÓLOGO**\n\nHas llegado a la entrada de la Cripta de los Lamentos. La lluvia golpea tu armadura oxidada y el viento aúlla como un lobo herido. Ante ti, unas escaleras descienden hacia una oscuridad total.\n\nNadie ha salido vivo de aquí en cien años.\n\n¿Qué haces?",
     }
 
 # --- RNG & COMBAT MECHANICS ---

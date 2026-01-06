@@ -26,9 +26,11 @@ def query_dm(user_input, current_state, mock=False):
     # We inject strict instructions into the user prompt to force the AI to stay in character
     # and focus on the JSON output format.
     style_injection = f"""
-    [Player Action]: "{user_input}"
-    [Instruction]: Narrate the result of this action in a dark fantasy style. 
-    MANDATORY: Respond ONLY with a valid JSON object. Do not write any intro/outro text outside the JSON.
+    [Acción del Jugador]: "{user_input}"
+    
+    [Instrucción]: Eres el Narrador. Narra la consecuencia inmediata de esta acción en ESPAÑOL.
+    Si hay combate, usa los números del sistema. Si no, sé creativo y cruel.
+    OBLIGATORIO: Responde SOLAMENTE con el objeto JSON.
     """
 
     messages = [
