@@ -1,102 +1,204 @@
 import json
 import os
-from config import INITIAL_STATE, logger
+import random
+from datetime import datetime
+from config import logger
 from ai_engine import query_dm
 
 SAVE_FILE = "savegame.json"
 
 def initialize_game():
-    """Retorna el estado inicial limpio para una nueva partida."""
-    # Hacemos una copia para no modificar la configuración original
-    return INITIAL_STATE.copy()
+    """
+    Creates the initial state of the game.
+    """
+    return {
+        "location": "Entrada de la Mazmorra",
+        "health": 100,
+        "max_health": 100,
+        "gold": 0,
+        "inventory": ["Antorcha", "Espada oxidada"],
+        
+        # --- NEW: COMBAT STATE ---
+        "combat": {
+            "active": False,
+            "enemy_name": None,
+            "enemy_hp": 0,
+            "enemy_max_hp": 0,
+            "last_roll": None
+        },
+        
+        "history": [],
+        "display_log": "Has llegado a la entrada de una mazmorra antigua. El aire es frio y huele a humedad..."
+    }
+
+# --- RNG & COMBAT MECHANICS ---
+
+def spawn_random_enemy():
+    """Generates a random enemy for testing mechanics."""
+    enemies = [
+        {"name": "Goblin Scavenger", "hp": 15},
+        {"name": "Skeleton Warrior", "hp": 25},
+        {"name": "Giant Rat", "hp": 10},
+        {"name": "Dark Cultist", "hp": 20}
+    ]
+    mob = random.choice(enemies)
+    return mob
+
+def resolve_combat_mechanics(user_action, state):
+    """
+    Analyzes the user's text. If they are attacking and in combat,
+    Python calculates the result (Hit/Miss/Damage).
+    Returns a string of 'System Context' to guide the AI.
+    """
+    combat_state = state['combat']
+    
+    # 1. Check if combat is active
+    if not combat_state['active']:
+        return None
+
+    # 2. Check keywords (Simple parser)
+    action_lower = user_action.lower()
+    attack_keywords = ["atacar", "golpear", "cortar", "attack", "hit", "slash", "stab", "luchar"]
+    
+    if any(word in action_lower for word in attack_keywords):
+        enemy_name = combat_state['enemy_name']
+        
+        # 3. RNG: D20 Roll
+        d20_roll = random.randint(1, 20)
+        state['combat']['last_roll'] = d20_roll
+        
+        # Threshold to hit (AC). Simplified to 11 for now.
+        ac_threshold = 11 
+        
+        context_msg = ""
+        
+        if d20_roll >= ac_threshold:
+            # HIT: Calculate Damage (1d8 + 2)
+            damage = random.randint(1, 8) + 2
+            
+            # Critical Hit Logic
+            if d20_roll == 20:
+                damage = damage * 2
+                context_msg = f"[SYSTEM]: CRITICAL HIT! (Rolled 20). Dealt {damage} damage."
+            else:
+                context_msg = f"[SYSTEM]: HIT! (Rolled {d20_roll}). Dealt {damage} damage."
+            
+            # Apply damage
+            combat_state['enemy_hp'] -= damage
+            
+            # Check Death
+            if combat_state['enemy_hp'] <= 0:
+                combat_state['enemy_hp'] = 0
+                combat_state['active'] = False
+                context_msg += f" The {enemy_name} takes fatal damage and DIES. Combat ended."
+            else:
+                context_msg += f" The {enemy_name} has {combat_state['enemy_hp']} HP remaining."
+        else:
+            # MISS
+            context_msg = f"[SYSTEM]: MISS! (Rolled {d20_roll}). The attack fails to connect with the {enemy_name}."
+            
+        return context_msg
+    
+    return None
+
+# --- MAIN LOOP ---
 
 def process_turn(user_input, current_state, mock=False):
     """
-    Toma la acción del usuario, consulta a la IA y actualiza el estado.
-    Retorna: (nuevo_estado, texto_para_mostrar)
+    Main game loop:
+    1. Check for debug commands (Spawn).
+    2. Calculate mechanics (Python).
+    3. Send Context + User Input to AI.
+    4. Update State with AI response.
     """
     
-    # 1. Validación de Estado (Si ya murió, resetear o bloquear)
-    if current_state.get('health', 0) <= 0:
-        return current_state, "\n💀 Estás muerto. Presiona 'Nueva Partida'."
+    # --- STEP 0: DEBUG COMMANDS (To test combat easily) ---
+    system_override_msg = ""
+    if "generar enemigo" in user_input.lower() or "spawn enemy" in user_input.lower():
+        if not current_state['combat']['active']:
+            mob = spawn_random_enemy()
+            current_state['combat']['active'] = True
+            current_state['combat']['enemy_name'] = mob['name']
+            current_state['combat']['enemy_hp'] = mob['hp']
+            current_state['combat']['enemy_max_hp'] = mob['hp']
+            system_override_msg = f"[SYSTEM]: A wild {mob['name']} (HP: {mob['hp']}) appears! Combat started."
+        else:
+            system_override_msg = "[SYSTEM]: You are already in combat!"
 
-    # 2. Consultar al Motor de IA
-    ai_data = query_dm(user_input, current_state, mock=mock)
-
-    # 3. Actualizar Estadísticas (Matemáticas)
-    # Usamos .get() para evitar errores si la IA olvida un campo
-    hp_delta = ai_data.get('hp_change', 0)
-    gold_delta = ai_data.get('gold_change', 0)
+    # --- STEP 1: RESOLVE MECHANICS ---
+    # Python calculates math before the AI speaks
+    mechanics_context = resolve_combat_mechanics(user_input, current_state)
     
-    current_state['health'] += hp_delta
-    current_state['gold'] += gold_delta
+    # Combine user input with system context for the Prompt
+    final_prompt = user_input
+    if system_override_msg:
+        final_prompt += f"\n\n{system_override_msg}"
+    if mechanics_context:
+        final_prompt += f"\n\n{mechanics_context}\n[INSTRUCTION]: Narrate this combat outcome strictly based on the SYSTEM numbers provided."
 
-    # Evitar vida negativa visualmente, aunque lógica ya sea muerte
-    if current_state['health'] < 0:
-        current_state['health'] = 0
-
-    # 4. Gestión de Inventario
-    new_item = ai_data.get('new_item')
-    # Solo agregamos si existe y no es "None" o vacío
-    if new_item and isinstance(new_item, str):
-        # Evitamos duplicados exactos si quieres (opcional)
-        if new_item not in current_state['inventory']:
-            current_state['inventory'].append(new_item)
-            logger.info(f"Ítem añadido: {new_item}")
-
-    # 5. Actualizar Historial (Memoria de la IA)
-    narrative = ai_data.get('narrative', '...')
+    # --- STEP 2: QUERY AI ---
+    ai_response = query_dm(final_prompt, current_state, mock)
     
-    # Guardamos en el formato que la IA necesita leer en el futuro
+    # --- STEP 3: UPDATE STATE ---
+    # Update text log
+    narrative = ai_response.get("narrative", "...")
+    
+    # Update Numeric Stats (Player HP/Gold) from AI decision
+    # (The AI still decides if the monster hits back via the JSON hp_change)
+    current_state['health'] += ai_response.get("hp_change", 0)
+    current_state['gold'] += ai_response.get("gold_change", 0)
+    
+    # Health Cap handling
+    if current_state['health'] > current_state['max_health']:
+        current_state['health'] = current_state['max_health']
+    
+    # Inventory
+    new_item = ai_response.get("new_item")
+    if new_item and new_item not in current_state['inventory']:
+        current_state['inventory'].append(new_item)
+        
+    # Append to history
     current_state['history'].append({"role": "user", "content": user_input})
     current_state['history'].append({"role": "assistant", "content": narrative})
-
-    # Limitamos el historial a los últimos 10 turnos para no saturar la memoria (context window)
+    
+    # Limit history size to avoid token overflow
     if len(current_state['history']) > 20:
         current_state['history'] = current_state['history'][-20:]
 
-    # 6. Formatear la respuesta visual para el usuario
-    # Construimos el string que se verá en la pantalla azul del chat
-    display_text = f"\n\n> 👤 TÚ: {user_input}\n🎲 DM: {narrative}"
-    
-    # Añadimos feedback visual de cambios numéricos
-    changes = []
-    if hp_delta != 0: changes.append(f"{hp_delta:+d} HP")
-    if gold_delta != 0: changes.append(f"{gold_delta:+d} Oro")
-    if new_item: changes.append(f"+{new_item}")
-    
-    if changes:
-        display_text += f"\n   ({', '.join(changes)})"
+    return current_state, f"\n\n👤 TÚ: {user_input}\n🎲 DM: {narrative}"
 
-    # 7. Verificar Muerte POST-DAÑO
-    if current_state['health'] <= 0:
-        display_text += "\n\n💀 HAS MUERTO. Tu aventura termina aquí."
-
-    return current_state, display_text
+# --- PERSISTENCE ---
 
 def save_game_state(state):
-    """Guarda el estado actual en un archivo JSON."""
     try:
         with open(SAVE_FILE, 'w', encoding='utf-8') as f:
             json.dump(state, f, indent=4)
-        logger.info("Partida guardada correctamente.")
-        return True, "\n\n💾 [SISTEMA] Partida guardada exitosamente."
+        logger.info("Game saved.")
+        return True, "Partida guardada correctamente."
     except Exception as e:
-        logger.error(f"Error al guardar: {e}")
-        return False, f"\n\n❌ [ERROR] No se pudo guardar: {str(e)}"
+        logger.error(f"Save error: {e}")
+        return False, f"Error al guardar: {str(e)}"
 
 def load_game_state():
-    """Carga el estado desde el archivo JSON si existe."""
     if not os.path.exists(SAVE_FILE):
-        return None, "\n\n⚠️ [SISTEMA] No hay partida guardada."
+        return None, "No existe archivo de guardado."
     
     try:
         with open(SAVE_FILE, 'r', encoding='utf-8') as f:
             state = json.load(f)
-        logger.info("Partida cargada correctamente.")
-        # Añadimos un mensaje visual al historial para que el usuario sepa que cargo
+        
+        # Backwards compatibility check
+        if "combat" not in state:
+            state["combat"] = {
+                "active": False,
+                "enemy_name": None,
+                "enemy_hp": 0,
+                "enemy_max_hp": 0
+            }
+            
+        logger.info("Game loaded.")
         state['display_log'] += "\n\n📂 [SISTEMA] Partida cargada."
-        return state, "Carga exitosa"
+        return state, "Carga exitosa."
     except Exception as e:
-        logger.error(f"Error al cargar: {e}")
-        return None, f"\n\n❌ [ERROR] Archivo de guardado corrupto: {str(e)}"
+        logger.error(f"Load error: {e}")
+        return None, f"Error al cargar: {str(e)}"
