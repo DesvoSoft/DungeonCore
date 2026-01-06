@@ -1,0 +1,71 @@
+/* assets/style.css */
+
+/* Fuente Monospaced para el chat (Estilo Terminal/RPG) */
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap");
+
+/* Reset básico y fondo global para evitar parpadeos blancos al cargar */
+body {
+  background-color: #030712; /* Coincide con Tailwind gray-950 */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  overflow-x: hidden; /* Evita scroll horizontal accidental */
+}
+
+/* --- SCROLLBAR PERSONALIZADO (El toque Premium) --- */
+/* Aplica a la clase .custom-scrollbar y a cualquier textarea */
+
+.custom-scrollbar::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: #0f172a; /* Slate 900 (Muy oscuro) */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: #334155; /* Slate 700 (Gris azulado) */
+  border-radius: 5px;
+  border: 2px solid #0f172a; /* Crea un borde para efecto "flotante" */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: #475569; /* Slate 600 (Más claro al pasar el mouse) */
+}
+
+/* --- AJUSTES DE MARKDOWN (Tipografía) --- */
+/* Tailwind Typography plugin es genial, pero a veces necesita ayuda en modo oscuro */
+
+.prose {
+  max-width: 100% !important; /* Usa todo el ancho disponible */
+}
+
+/* Forzar colores claros en el texto del chat */
+.prose p,
+.prose li {
+  color: #d1d5db !important; /* gray-300 */
+  margin-bottom: 0.8em !important;
+}
+
+/* Negritas más brillantes para destacar nombres o ítems */
+.prose strong {
+  color: #f3f4f6 !important; /* gray-100 */
+  font-weight: 700 !important;
+}
+
+/* Citas (Blockquotes) estilo RPG */
+.prose blockquote {
+  border-left-color: #ef4444 !important; /* red-500 */
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #e5e7eb !important; /* gray-200 */
+  padding: 0.5rem 1rem;
+  font-style: italic;
+  border-radius: 0 4px 4px 0;
+}
