@@ -1,18 +1,24 @@
 import logging
+import sys
 
-# Configuracion de Logs
+# URL de LM Studio
+LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
+
+# --- CONFIGURACIÓN DE LOGGING ---
+# 1. Forzamos la salida de consola a UTF-8 (Vital para Windows)
+if sys.platform == "win32" and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("debug.log"), # Guarda errores en archivo
-        logging.StreamHandler()           # Muestra en consola
+        # 2. Guardamos los logs en archivo con UTF-8 explícito
+        logging.FileHandler("debug.log", encoding='utf-8'), 
+        logging.StreamHandler(sys.stdout)           
     ]
 )
 logger = logging.getLogger(__name__)
-
-# URL de LM Studio
-LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 
 # Prompt del Sistema (La "Biblia" del DM)
 SYSTEM_PROMPT = """You are a Dungeon Master.
