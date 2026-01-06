@@ -54,13 +54,31 @@ def render_loading_spinner():
     ], className="h-8 flex justify-center items-center mb-8")
 
 def render_footer():
-    """Botones de sistema y footer."""
+    """Botones de sistema (Guardar, Cargar, Reiniciar)."""
     return html.Div([
-        html.Button(
-            "🔄 Reiniciar Partida", 
-            id="reset-btn", 
-            n_clicks=0, 
-            className="text-gray-500 hover:text-white text-sm border border-gray-700 hover:border-gray-500 px-4 py-2 rounded-full transition-all"
-        ),
-        html.Div(id="dev-mode-indicator", className="text-gray-600 text-xs mt-3 font-mono")
+        html.Div([
+            # Botón Guardar
+            html.Button(
+                "💾 Guardar", 
+                id="save-btn", 
+                n_clicks=0, 
+                className="bg-blue-900/50 hover:bg-blue-800 text-blue-200 text-sm border border-blue-800 px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            ),
+            # Botón Cargar
+            html.Button(
+                "📂 Cargar", 
+                id="load-btn", 
+                n_clicks=0, 
+                className="bg-green-900/50 hover:bg-green-800 text-green-200 text-sm border border-green-800 px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            ),
+            # Botón Reiniciar
+            html.Button(
+                "💀 Reiniciar", 
+                id="reset-btn", 
+                n_clicks=0, 
+                className="bg-red-900/30 hover:bg-red-900/80 text-red-300 text-sm border border-red-900 px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            ),
+        ], className="flex justify-center gap-4 mb-4"), # Flex gap separa los botones
+
+        html.Div(id="dev-mode-indicator", className="text-gray-600 text-xs font-mono")
     ], className="text-center pb-8")

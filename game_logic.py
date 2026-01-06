@@ -1,5 +1,9 @@
+import json
+import os
 from config import INITIAL_STATE, logger
 from ai_engine import query_dm
+
+SAVE_FILE = "savegame.json"
 
 def initialize_game():
     """Retorna el estado inicial limpio para una nueva partida."""
@@ -69,3 +73,30 @@ def process_turn(user_input, current_state, mock=False):
         display_text += "\n\n💀 HAS MUERTO. Tu aventura termina aquí."
 
     return current_state, display_text
+
+def save_game_state(state):
+    """Guarda el estado actual en un archivo JSON."""
+    try:
+        with open(SAVE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(state, f, indent=4)
+        logger.info("Partida guardada correctamente.")
+        return True, "\n\n💾 [SISTEMA] Partida guardada exitosamente."
+    except Exception as e:
+        logger.error(f"Error al guardar: {e}")
+        return False, f"\n\n❌ [ERROR] No se pudo guardar: {str(e)}"
+
+def load_game_state():
+    """Carga el estado desde el archivo JSON si existe."""
+    if not os.path.exists(SAVE_FILE):
+        return None, "\n\n⚠️ [SISTEMA] No hay partida guardada."
+    
+    try:
+        with open(SAVE_FILE, 'r', encoding='utf-8') as f:
+            state = json.load(f)
+        logger.info("Partida cargada correctamente.")
+        # Añadimos un mensaje visual al historial para que el usuario sepa que cargo
+        state['display_log'] += "\n\n📂 [SISTEMA] Partida cargada."
+        return state, "Carga exitosa"
+    except Exception as e:
+        logger.error(f"Error al cargar: {e}")
+        return None, f"\n\n❌ [ERROR] Archivo de guardado corrupto: {str(e)}"
