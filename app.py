@@ -1,11 +1,9 @@
-print("--- 1. Iniciando Script ---")
 import dash
 from dash import Input, Output, State, ctx, no_update
 from config import logger
 from game_logic import initialize_game, process_turn, save_game_state, load_game_state
 from frontend.layout import build_layout
 from frontend.components import render_stat_card
-print("--- 2. Imports completados ---")
 
 # --- CONFIGURACION ---
 DEV_MODE = False 
@@ -99,5 +97,4 @@ def main_game_loop(btn_click, enter_submit, reset_click, save_click, load_click,
     return no_update, no_update, no_update, no_update, dev_msg, no_update
 
 if __name__ == "__main__":
-    print("--- 3. Arrancando Servidor ---") # <--- PON ESTO
     app.run(debug=True, port=8050)
