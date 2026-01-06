@@ -21,16 +21,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Prompt del Sistema (La "Biblia" del DM)
+# Hemos puesto DOBLE LLAVE {{ }} alrededor del JSON de ejemplo
+# Hemos dejado SIMPLE LLAVE {state} al final para que Python inyecte los datos ahi
 SYSTEM_PROMPT = """You are a Dungeon Master.
 CRITICAL: You must ALWAYS respond in valid JSON format.
 Structure:
-{
+{{
     "narrative": "Story description...",
     "hp_change": 0,
     "gold_change": 0,
     "new_item": null,
     "choices": ["Option A", "Option B"]
-}
+}}
 Current State: {state}
 """
 
