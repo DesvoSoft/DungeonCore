@@ -5,7 +5,7 @@ from game_logic import initialize_game, process_turn
 
 # --- CONFIGURACION DE DESARROLLO ---
 # Pon esto en False cuando quieras jugar con la IA real.
-# Ponlo en True para probar la interfaz rapidamente sin IA.
+# Ponlo en True para probar la interfaz rapidamente sin IA (Mock).
 DEV_MODE = False 
 
 # Inicializar la app
@@ -27,7 +27,7 @@ app.layout = html.Div([
         })
     ], style={'textAlign': 'center', 'marginBottom': '20px', 'maxWidth': '800px', 'margin': '20px auto'}),
 
-    # 2. Area de Chat
+    # 2. Área de Chat (Estático)
     html.Div([
         dcc.Textarea(
             id="chat-display",
@@ -75,14 +75,24 @@ app.layout = html.Div([
         ),
     ], style={'maxWidth': '800px', 'margin': '20px auto', 'display': 'flex'}),
 
-    # 4. Botones de Sistema
+    # 4. INDICADOR DE CARGA (SPINNER)
+    # Aquí es donde ocurre la magia visual. Se activa cuando el callback actualiza 'loading-trigger'.
+    html.Div([
+        dcc.Loading(
+            id="loading-spinner",
+            type="dot", # Opciones: "dot", "circle", "default"
+            color="#2c3e50",
+            children=html.Div(id="loading-trigger") # Div vacío objetivo
+        )
+    ], style={'height': '50px', 'textAlign': 'center'}),
+
+    # 5. Botones de Sistema
     html.Div([
         html.Button("🔄 Nueva Partida", id="reset-btn", n_clicks=0, style={'padding': '8px 16px', 'cursor': 'pointer'}),
         html.Div(id="dev-mode-indicator", style={'marginTop': '10px', 'color': 'gray', 'fontSize': '12px'})
-    ], style={'textAlign': 'center', 'marginTop': '30px'}),
+    ], style={'textAlign': 'center', 'marginTop': '10px'}),
 
-    # 5. ALMACENAMIENTO DE ESTADO (El cerebro oculto)
-    # storage_type='session' guarda los datos mientras la pestaña este abierta
+    # 6. ALMACENAMIENTO DE ESTADO
     dcc.Store(id='game-store', storage_type='session'), 
 ])
 
@@ -92,9 +102,10 @@ app.layout = html.Div([
      Output("stats-bar", "children"),
      Output("user-input", "value"),
      Output("game-store", "data"),
-     Output("dev-mode-indicator", "children")],
+     Output("dev-mode-indicator", "children"),
+     Output("loading-trigger", "children")], 
     [Input("send-btn", "n_clicks"),
-     Input("user-input", "n_submit"), # Permite dar Enter en el input
+     Input("user-input", "n_submit"),
      Input("reset-btn", "n_clicks")],
     [State("user-input", "value"),
      State("game-store", "data"),
@@ -102,11 +113,9 @@ app.layout = html.Div([
 )
 def main_game_loop(btn_click, enter_submit, reset_click, user_text, current_state, current_chat_text):
     trigger = ctx.triggered_id
-    
-    # Mensaje de modo desarrollo
     dev_msg = f"🛠️ MOCK MODE: {'ACTIVADO' if DEV_MODE else 'DESACTIVADO'}"
-
-    # A. Inicializacion (Carga inicial o Boton Reset)
+    
+    # A. Inicialización (Carga inicial o Botón Reset)
     if not current_state or trigger == "reset-btn":
         logger.info("Iniciando nueva partida...")
         new_state = initialize_game()
@@ -120,17 +129,17 @@ def main_game_loop(btn_click, enter_submit, reset_click, user_text, current_stat
             html.Span(f"🎒 {inv_str}")
         ]
         
-        return new_state['display_log'], stats_html, "", new_state, dev_msg
+        return new_state['display_log'], stats_html, "", new_state, dev_msg, ""
 
     # B. Turno del Jugador
     if (trigger == "send-btn" or trigger == "user-input") and user_text:
         
-        # LLAMADA A LA LOGICA (game_logic.py)
+        # LLAMADA A TU LÓGICA (game_logic.py)
         new_state, turn_text = process_turn(user_text, current_state, mock=DEV_MODE)
         
         # Actualizamos el log visual completo
         full_log = (current_chat_text or "") + turn_text
-        new_state['display_log'] = full_log # Guardamos tambien en el estado (por si acaso xd)
+        new_state['display_log'] = full_log 
 
         # Actualizar Stats Visuales
         inv_str = ", ".join(new_state['inventory'])
@@ -141,11 +150,10 @@ def main_game_loop(btn_click, enter_submit, reset_click, user_text, current_stat
             html.Span(f"🎒 {inv_str}")
         ]
 
-        return full_log, stats_html, "", new_state, dev_msg
+        return full_log, stats_html, "", new_state, dev_msg, ""
 
-    # C. Sin cambios (evita parpadeos)
-    return no_update, no_update, no_update, no_update, dev_msg
+    # C. Sin cambios
+    return no_update, no_update, no_update, no_update, dev_msg, no_update
 
 if __name__ == "__main__":
-    # debug=True permite hot-reloading
     app.run(debug=True, port=8050)
