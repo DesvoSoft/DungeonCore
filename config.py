@@ -33,3 +33,14 @@ Structure:
 }
 Current State: {state}
 """
+
+# Estado inicial de prueba
+
+INITIAL_STATE = {
+    "health": 100,
+    "inventory": ["Antorcha", "Mapa viejo"],
+    "location": "Entrada de la Mazmorra",
+    "gold": 0,
+    "history": [],
+    "display_log": "Has llegado a la entrada de una mazmorra oscura...\n\n¿Qué deseas hacer?"
+}
